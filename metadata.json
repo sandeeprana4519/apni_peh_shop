@@ -1,0 +1,6 @@
+{
+  "name": "Apni Pehchaan - Affiliate Marketing Platform",
+  "description": "Production-ready affiliate marketing storefront and partner management platform powered by Hostinger MySQL and Express.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

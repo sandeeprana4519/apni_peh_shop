@@ -39,11 +39,26 @@ if (DB_HOST && DB_USER && DB_NAME) {
     });
 
     mysqlPool.getConnection()
-      .then((conn) => {
+      .then(async (conn) => {
         conn.release();
         isConnectedToMySQL = true;
         connectionMessage = `Connected to Hostinger MySQL (${DB_NAME} on ${DB_HOST})`;
         console.log(`[Database] Hostinger MySQL connection established successfully.`);
+
+        // Ensure password column exists in partners and admins tables for phpMyAdmin visibility
+        try {
+          await mysqlPool!.execute(`ALTER TABLE partners ADD COLUMN password VARCHAR(100) NULL AFTER mobile_number`);
+        } catch { /* Column may already exist */ }
+
+        try {
+          await mysqlPool!.execute(`ALTER TABLE admins ADD COLUMN password VARCHAR(100) NULL AFTER email`);
+        } catch { /* Column may already exist */ }
+
+        // Populate default passwords if NULL
+        try {
+          await mysqlPool!.execute(`UPDATE partners SET password = 'password123' WHERE password IS NULL OR password = ''`);
+          await mysqlPool!.execute(`UPDATE admins SET password = 'admin123' WHERE password IS NULL OR password = ''`);
+        } catch { /* Ignore if table not yet created */ }
       })
       .catch((err) => {
         isConnectedToMySQL = false;
@@ -172,6 +187,7 @@ function createInitialData(): StorageData {
         id: 1,
         username: 'superadmin',
         email: 'admin@apnipehchaan.com',
+        password: 'admin123',
         password_hash: DEFAULT_ADMIN_HASH,
         full_name: 'Platform Administrator',
         role: 'superadmin',
@@ -186,6 +202,7 @@ function createInitialData(): StorageData {
         full_name: 'Rohan Sharma',
         email: 'rohan.sharma@example.com',
         mobile_number: '+91 98112 23344',
+        password: 'password123',
         password_hash: DEFAULT_HASH,
         profile_image: '/images/avatars/partner_1.png',
         status: 'APPROVED',
@@ -198,6 +215,7 @@ function createInitialData(): StorageData {
         full_name: 'Priya Verma',
         email: 'priya.verma@example.com',
         mobile_number: '+91 98223 34455',
+        password: 'password123',
         password_hash: DEFAULT_HASH,
         profile_image: '/images/avatars/partner_2.png',
         status: 'APPROVED',
@@ -210,6 +228,7 @@ function createInitialData(): StorageData {
         full_name: 'Amit Patel',
         email: 'amit.patel@example.com',
         mobile_number: '+91 98334 45566',
+        password: 'password123',
         password_hash: DEFAULT_HASH,
         profile_image: '/images/avatars/partner_3.png',
         status: 'APPROVED',
@@ -222,6 +241,7 @@ function createInitialData(): StorageData {
         full_name: 'Sneha Kulkarni',
         email: 'sneha.k@example.com',
         mobile_number: '+91 98445 56677',
+        password: 'password123',
         password_hash: DEFAULT_HASH,
         profile_image: null,
         status: 'PENDING',

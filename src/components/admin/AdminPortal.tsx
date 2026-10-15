@@ -17,6 +17,7 @@ import {
   Check,
   XCircle,
   Eye,
+  EyeOff,
   Trash2,
   Edit,
   Save,
@@ -97,6 +98,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [selectedPartnerProducts, setSelectedPartnerProducts] = useState<any | null>(null);
   const [resettingPartnerPassword, setResettingPartnerPassword] = useState<any | null>(null);
   const [newPartnerPassword, setNewPartnerPassword] = useState('');
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<number, boolean>>({});
+
+  const togglePasswordVisibility = (id: number) => {
+    setVisiblePasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Category management form
   const [newCatName, setNewCatName] = useState('');
@@ -1293,6 +1299,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       <th className="p-3">Partner ID</th>
                       <th className="p-3">Full Name</th>
                       <th className="p-3">Contact</th>
+                      <th className="p-3">Password</th>
                       <th className="p-3">Submitted</th>
                       <th className="p-3">Clicks</th>
                       <th className="p-3">Status</th>
@@ -1302,7 +1309,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <tbody className="divide-y divide-slate-800/80">
                     {partnersList.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                        <td colSpan={8} className="p-8 text-center text-slate-500">
                           No partners found.
                         </td>
                       </tr>
@@ -1314,6 +1321,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           <td className="p-3 text-slate-400">
                             <div>{p.email}</div>
                             <div className="text-[11px] text-slate-500">{p.mobile_number}</div>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-1.5 font-mono text-xs">
+                              <span className="text-slate-300">
+                                {visiblePasswords[p.id] ? (p.password || 'password123') : '••••••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => togglePasswordVisibility(p.id)}
+                                className="p-1 text-slate-500 hover:text-amber-400 transition-colors"
+                                title={visiblePasswords[p.id] ? "Hide Password" : "Show Password"}
+                              >
+                                {visiblePasswords[p.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                            </div>
                           </td>
                           <td className="p-3 font-semibold text-slate-300 tabular-nums">{p.total_products || 0}</td>
                           <td className="p-3 font-semibold text-blue-400 tabular-nums">{p.total_clicks || 0}</td>

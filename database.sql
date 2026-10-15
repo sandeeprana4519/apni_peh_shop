@@ -36,6 +36,7 @@ CREATE TABLE `admins` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `username` VARCHAR(50) NOT NULL,
   `email` VARCHAR(150) NOT NULL,
+  `password` VARCHAR(100) NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `full_name` VARCHAR(100) NOT NULL,
   `role` ENUM('superadmin', 'admin', 'moderator') NOT NULL DEFAULT 'admin',
@@ -59,6 +60,7 @@ CREATE TABLE `partners` (
   `full_name` VARCHAR(120) NOT NULL,
   `email` VARCHAR(150) NOT NULL,
   `mobile_number` VARCHAR(25) NOT NULL,
+  `password` VARCHAR(100) NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `profile_image` VARCHAR(255) NULL,
   `status` ENUM('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED') NOT NULL DEFAULT 'PENDING',
@@ -269,10 +271,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =====================================================================
 
 -- Default Administrator
--- Credentials: admin@apnipehchaan.com / admin123 (hashed with bcrypt 10 rounds)
-INSERT INTO `admins` (`id`, `username`, `email`, `password_hash`, `full_name`, `role`, `is_active`) VALUES
-(1, 'superadmin', 'admin@apnipehchaan.com', '$2a$10$Q7Ym1aJk8fE2lW0e9pQoSuWzJqJ4y7VbB2t2T0eM4jF7vW2hZlXyK', 'Platform Administrator', 'superadmin', 1)
-ON DUPLICATE KEY UPDATE `username`=`username`;
+-- Credentials: admin@apnipehchaan.com / admin123 (both plain password and bcrypt hash stored)
+INSERT INTO `admins` (`id`, `username`, `email`, `password`, `password_hash`, `full_name`, `role`, `is_active`) VALUES
+(1, 'superadmin', 'admin@apnipehchaan.com', 'admin123', '$2b$10$MCcrS7s9EjwgJ29cYqipQupgvibmI361F7ZdczUWfKWTc/qxqxpFu', 'Platform Administrator', 'superadmin', 1)
+ON DUPLICATE KEY UPDATE `username`=`username`, `password`='admin123';
 
 -- Website Settings
 INSERT INTO `website_settings` (`setting_key`, `setting_value`, `setting_group`, `description`) VALUES
@@ -323,13 +325,13 @@ INSERT INTO `banners` (`id`, `title`, `subtitle`, `image_url`, `cta_text`, `cta_
 ON DUPLICATE KEY UPDATE `title`=VALUES(`title`);
 
 -- Sample Approved Partners with AP00001 format
--- Password: password123 (hashed with bcrypt 10 rounds)
-INSERT INTO `partners` (`id`, `partner_id`, `full_name`, `email`, `mobile_number`, `password_hash`, `profile_image`, `status`, `created_at`) VALUES
-(1, 'AP00001', 'Rohan Sharma', 'rohan.sharma@example.com', '9811223344', '$2a$10$Q7Ym1aJk8fE2lW0e9pQoSuWzJqJ4y7VbB2t2T0eM4jF7vW2hZlXyK', '/images/avatars/partner_rohan.svg', 'APPROVED', NOW()),
-(2, 'AP00002', 'Priya Verma', 'priya.verma@example.com', '9822334455', '$2a$10$Q7Ym1aJk8fE2lW0e9pQoSuWzJqJ4y7VbB2t2T0eM4jF7vW2hZlXyK', '/images/avatars/partner_priya.svg', 'APPROVED', NOW()),
-(3, 'AP00003', 'Amit Patel', 'amit.patel@example.com', '9833445566', '$2a$10$Q7Ym1aJk8fE2lW0e9pQoSuWzJqJ4y7VbB2t2T0eM4jF7vW2hZlXyK', '/images/avatars/partner_amit.svg', 'APPROVED', NOW()),
-(4, 'AP00004', 'Sneha Kulkarni', 'sneha.k@example.com', '9844556677', '$2a$10$Q7Ym1aJk8fE2lW0e9pQoSuWzJqJ4y7VbB2t2T0eM4jF7vW2hZlXyK', '/images/avatars/partner_sneha.svg', 'PENDING', NOW())
-ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`);
+-- Credentials: password123 (both plain password and bcrypt hash stored)
+INSERT INTO `partners` (`id`, `partner_id`, `full_name`, `email`, `mobile_number`, `password`, `password_hash`, `profile_image`, `status`, `created_at`) VALUES
+(1, 'AP00001', 'Rohan Sharma', 'rohan.sharma@example.com', '9811223344', 'password123', '$2b$10$GjGmCd9XW2OJt/S9cS75Z.EIEVFrS9vnk5yYq9Kxc9G7K2Gg.P9yu', '/images/avatars/partner_rohan.svg', 'APPROVED', NOW()),
+(2, 'AP00002', 'Priya Verma', 'priya.verma@example.com', '9822334455', 'password123', '$2b$10$GjGmCd9XW2OJt/S9cS75Z.EIEVFrS9vnk5yYq9Kxc9G7K2Gg.P9yu', '/images/avatars/partner_priya.svg', 'APPROVED', NOW()),
+(3, 'AP00003', 'Amit Patel', 'amit.patel@example.com', '9833445566', 'password123', '$2b$10$GjGmCd9XW2OJt/S9cS75Z.EIEVFrS9vnk5yYq9Kxc9G7K2Gg.P9yu', '/images/avatars/partner_amit.svg', 'APPROVED', NOW()),
+(4, 'AP00004', 'Sneha Kulkarni', 'sneha.k@example.com', '9844556677', 'password123', '$2b$10$GjGmCd9XW2OJt/S9cS75Z.EIEVFrS9vnk5yYq9Kxc9G7K2Gg.P9yu', '/images/avatars/partner_sneha.svg', 'PENDING', NOW())
+ON DUPLICATE KEY UPDATE `full_name`=VALUES(`full_name`), `password`='password123';
 
 -- Sample Approved and Published Products (Matching Layout in Image 1)
 INSERT INTO `products` (`id`, `product_name`, `slug`, `image_url`, `description`, `category_id`, `platform_id`, `price`, `original_mrp`, `currency`, `rating`, `reviews_count`, `affiliate_url`, `added_by_role`, `partner_id`, `approval_status`, `publication_status`, `is_featured`, `is_trending`, `display_priority`, `clicks_count`) VALUES

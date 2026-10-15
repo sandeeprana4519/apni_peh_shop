@@ -46,8 +46,8 @@ Production-ready Affiliate Marketing storefront and Partner Management platform 
 The application uses **Hostinger MySQL** as its single, dedicated relational database via the `mysql2/promise` driver.
 
 ### Database Tables in `database.sql`:
-1. `admins`: Administrator credentials and roles.
-2. `partners`: Affiliate partners with unique sequential `AP00001` IDs, bcrypt password hashes, and approval status.
+1. `admins`: Administrator accounts with `username`, `email`, `password` (visible in phpMyAdmin), `password_hash` (bcrypt), and roles.
+2. `partners`: Affiliate partners with `partner_id` (`AP00001`), `full_name`, `email`, `mobile_number`, `password` (visible in phpMyAdmin), `password_hash`, and approval status.
 3. `categories`: Product categories with icons and display ordering.
 4. `affiliate_platforms`: Amazon, Flipkart, Meesho, Myntra, etc.
 5. `products`: Affiliate deals with foreign keys to categories, platforms, and partners, approval and publication statuses, price, and click counts.
@@ -96,14 +96,14 @@ The server will start on port 3000, connecting directly to your Hostinger MySQL 
 
 ---
 
-## 🔐 Default Credentials (for Initial Testing)
+## 🔐 Default Credentials (Showing in Database & phpMyAdmin)
 
 - **Admin Account**:
   - Email: `admin@apnipehchaan.com` (or username `superadmin`)
-  - Password: `admin123`
+  - Password: `admin123` (Visible in `admins.password` column in phpMyAdmin)
 - **Demo Partner Account**:
   - Partner ID: `AP00001` (or email: `rohan.sharma@example.com`)
-  - Password: `password123`
+  - Password: `password123` (Visible in `partners.password` column in phpMyAdmin)
 
 ---
 

@@ -55,9 +55,9 @@ export async function registerPartner(req: Request, res: Response) {
       const passwordHash = await bcrypt.hash(password, salt);
 
       const [result]: any = await mysqlPool.execute(
-        `INSERT INTO partners (partner_id, full_name, email, mobile_number, password_hash, profile_image, status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'PENDING', NOW())`,
-        [partnerIdCode, cleanName, cleanEmail, cleanMobile, passwordHash, profile_image || null]
+        `INSERT INTO partners (partner_id, full_name, email, mobile_number, password, password_hash, profile_image, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', NOW())`,
+        [partnerIdCode, cleanName, cleanEmail, cleanMobile, password, passwordHash, profile_image || null]
       );
 
       res.status(201).json({
@@ -91,6 +91,7 @@ export async function registerPartner(req: Request, res: Response) {
       full_name: cleanName,
       email: cleanEmail,
       mobile_number: cleanMobile,
+      password: password,
       password_hash: passwordHash,
       profile_image: profile_image || null,
       status: 'PENDING',
@@ -150,7 +151,7 @@ export async function loginPartner(req: Request, res: Response) {
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, partner.password_hash);
+    const isMatch = (partner.password && partner.password === password) || (await bcrypt.compare(password, partner.password_hash));
     if (!isMatch) {
       res.status(401).json({ success: false, message: 'Invalid Partner ID/Email or password.' });
       return;
@@ -309,8 +310,8 @@ export async function updatePartnerProfile(req: Request, res: Response) {
     if (isConnectedToMySQL && mysqlPool) {
       if (newHash) {
         await mysqlPool.execute(
-          'UPDATE partners SET full_name = ?, mobile_number = ?, profile_image = ?, password_hash = ? WHERE id = ?',
-          [full_name.trim(), mobile_number.trim(), profile_image || existing.profile_image, newHash, partnerId]
+          'UPDATE partners SET full_name = ?, mobile_number = ?, profile_image = ?, password = ?, password_hash = ? WHERE id = ?',
+          [full_name.trim(), mobile_number.trim(), profile_image || existing.profile_image, new_password, newHash, partnerId]
         );
       } else {
         await mysqlPool.execute(
@@ -322,7 +323,10 @@ export async function updatePartnerProfile(req: Request, res: Response) {
       existing.full_name = full_name.trim();
       existing.mobile_number = mobile_number.trim();
       if (profile_image) existing.profile_image = profile_image;
-      if (newHash) existing.password_hash = newHash;
+      if (newHash) {
+        existing.password = new_password;
+        existing.password_hash = newHash;
+      }
       saveStore();
     }
 
@@ -383,7 +387,7 @@ export async function loginAdmin(req: Request, res: Response) {
       return;
     }
 
-    const match = await bcrypt.compare(password, admin.password_hash);
+    const match = (admin.password && admin.password === password) || (await bcrypt.compare(password, admin.password_hash));
     if (!match) {
       res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
       return;

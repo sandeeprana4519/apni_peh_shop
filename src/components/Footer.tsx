@@ -243,6 +243,14 @@ export const Footer: React.FC<FooterProps> = ({
 
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-slate-500 font-mono">Hostinger MySQL Ready</span>
+            <span className="text-slate-700">|</span>
+            <a
+              href="#admin"
+              className="text-[11px] text-slate-400 hover:text-amber-400 transition-colors font-medium"
+              title="Superadmin CRM Portal"
+            >
+              Admin Portal
+            </a>
             <button
               onClick={scrollToTop}
               className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex items-center gap-1"

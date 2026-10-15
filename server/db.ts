@@ -58,6 +58,83 @@ if (DB_HOST && DB_USER && DB_NAME) {
   connectionMessage = 'Hostinger MySQL credentials not configured in .env. Operating in Local Fallback mode.';
 }
 
+export async function hasAdminAccount(): Promise<boolean> {
+  if (isConnectedToMySQL && mysqlPool) {
+    try {
+      const [rows]: any = await mysqlPool.query('SELECT id FROM admins LIMIT 1');
+      return rows && rows.length > 0;
+    } catch {
+      return memoryStore.admins.length > 0;
+    }
+  }
+  return memoryStore.admins.length > 0;
+}
+
+export async function logAdminActivity(
+  adminId: number | null,
+  action: string,
+  targetType: string,
+  targetId: string | number | null,
+  details: string,
+  ip: string
+): Promise<void> {
+  const cleanIp = String(ip || '').slice(0, 45);
+  if (isConnectedToMySQL && mysqlPool) {
+    try {
+      await mysqlPool.execute(
+        'INSERT INTO admin_activity_logs (admin_id, action, target_type, target_id, details, ip_address, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+        [adminId, action, targetType, targetId ? String(targetId) : null, details, cleanIp]
+      );
+      return;
+    } catch (err) {
+      console.error('Error logging admin activity to MySQL:', err);
+    }
+  }
+
+  memoryStore.admin_activity_logs.unshift({
+    id: memoryStore.admin_activity_logs.length + 1,
+    admin_id: adminId,
+    action,
+    target_type: targetType,
+    target_id: targetId ? String(targetId) : null,
+    details,
+    ip_address: cleanIp,
+    created_at: new Date().toISOString(),
+  });
+  saveStore();
+}
+
+export async function logProductStatusChange(
+  productId: number,
+  prevStatus: string,
+  newStatus: string,
+  adminId: number | null,
+  notes: string
+): Promise<void> {
+  if (isConnectedToMySQL && mysqlPool) {
+    try {
+      await mysqlPool.execute(
+        'INSERT INTO product_status_history (product_id, previous_status, new_status, changed_by_admin_id, notes, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+        [productId, prevStatus, newStatus, adminId, notes]
+      );
+      return;
+    } catch (err) {
+      console.error('Error logging product status change to MySQL:', err);
+    }
+  }
+
+  memoryStore.product_status_history.unshift({
+    id: memoryStore.product_status_history.length + 1,
+    product_id: productId,
+    previous_status: prevStatus,
+    new_status: newStatus,
+    changed_by_admin_id: adminId,
+    notes,
+    created_at: new Date().toISOString(),
+  });
+  saveStore();
+}
+
 export function getDatabaseStatus(): DatabaseStatus {
   return {
     connected: isConnectedToMySQL,

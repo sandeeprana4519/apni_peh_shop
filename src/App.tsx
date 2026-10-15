@@ -13,6 +13,8 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { PartnerAuthModal } from './components/PartnerAuthModal';
 import { PartnerDashboard } from './components/PartnerDashboard';
 import { AdminCRMModal } from './components/AdminCRMModal';
+import { AdminPortal } from './components/admin/AdminPortal';
+import { AdminLogin } from './components/admin/AdminLogin';
 import { LegalModal } from './components/LegalModal';
 import { WishlistModal } from './components/WishlistModal';
 import { Product, Category, AffiliatePlatform, Partner, Banner, WebsiteSettings } from './types';
@@ -71,6 +73,10 @@ export default function App() {
       return [];
     }
   });
+
+  // Admin authentication state & portal routing
+  const [adminSession, setAdminSession] = useState<any | null>(null);
+  const [currentView, setCurrentView] = useState<'store' | 'admin-login' | 'admin-portal'>('store');
 
   // Modals state
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
@@ -206,10 +212,49 @@ export default function App() {
     }
   };
 
+  // Check active admin session on mount
+  const checkAdminSession = async () => {
+    try {
+      const res = await fetch('/api/auth/admin/session');
+      const data = await res.json();
+      if (data.authenticated && data.admin) {
+        setAdminSession(data.admin);
+        return data.admin;
+      } else {
+        setAdminSession(null);
+        return null;
+      }
+    } catch {
+      setAdminSession(null);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchPublicBootstrapData();
     checkPartnerSession();
     fetchCarouselProducts();
+
+    // Check admin session and synchronize with URL hash
+    const syncRouteWithHash = async () => {
+      const hash = window.location.hash;
+      if (hash === '#admin' || hash === '#admin-portal') {
+        const admin = await checkAdminSession();
+        if (admin) {
+          setCurrentView('admin-portal');
+        } else {
+          setCurrentView('admin-login');
+        }
+      } else if (hash === '#admin-login') {
+        setCurrentView('admin-login');
+      } else {
+        setCurrentView('store');
+      }
+    };
+
+    syncRouteWithHash();
+    window.addEventListener('hashchange', syncRouteWithHash);
+    return () => window.removeEventListener('hashchange', syncRouteWithHash);
   }, []);
 
   // Re-fetch catalog on filter/search/sort change
@@ -236,6 +281,28 @@ export default function App() {
     }
   };
 
+  const handleOpenAdminPortal = async () => {
+    const admin = await checkAdminSession();
+    if (admin) {
+      setCurrentView('admin-portal');
+      window.location.hash = '#admin-portal';
+    } else {
+      setCurrentView('admin-login');
+      window.location.hash = '#admin-login';
+    }
+  };
+
+  const handleLogoutAdmin = async () => {
+    try {
+      await fetch('/api/auth/admin/logout', { method: 'POST' });
+    } catch (err) {
+      console.error(err);
+    }
+    setAdminSession(null);
+    setCurrentView('store');
+    window.location.hash = '';
+  };
+
   const handleOpenLegalModal = (tab: 'about' | 'contact' | 'privacy' | 'terms' | 'disclosure' | 'disclaimer') => {
     setLegalModalTab(tab);
     setLegalModalOpen(true);
@@ -245,6 +312,42 @@ export default function App() {
     setPartnerAuthInitialTab(initialTab);
     setPartnerAuthModalOpen(true);
   };
+
+  // If Admin Portal view is requested and user is authenticated as admin
+  if (currentView === 'admin-portal' && adminSession) {
+    return (
+      <AdminPortal
+        admin={adminSession}
+        onLogout={handleLogoutAdmin}
+        onBackToStore={() => {
+          setCurrentView('store');
+          window.location.hash = '';
+        }}
+        onStoreDataChanged={() => {
+          fetchPublicBootstrapData();
+          fetchCarouselProducts();
+          fetchCatalogProducts(1, false);
+        }}
+      />
+    );
+  }
+
+  // If Admin Login page is requested
+  if (currentView === 'admin-login') {
+    return (
+      <AdminLogin
+        onLoginSuccess={(admin) => {
+          setAdminSession(admin);
+          setCurrentView('admin-portal');
+          window.location.hash = '#admin-portal';
+        }}
+        onBackToStore={() => {
+          setCurrentView('store');
+          window.location.hash = '';
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
@@ -260,7 +363,7 @@ export default function App() {
         onOpenPartnerAuth={handleOpenPartnerAuth}
         onOpenPartnerDashboard={() => setPartnerDashboardOpen(true)}
         onLogoutPartner={handleLogoutPartner}
-        onOpenAdminCRM={() => setAdminCRMOpen(true)}
+        onOpenAdminCRM={handleOpenAdminPortal}
         wishlistCount={wishlist.length}
         onOpenWishlist={() => setWishlistModalOpen(true)}
       />

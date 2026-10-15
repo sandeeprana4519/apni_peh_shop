@@ -113,7 +113,13 @@ export async function getPublicProducts(req: Request, res: Response) {
     const offset = (pageNum - 1) * limitNum;
 
     if (isConnectedToMySQL && mysqlPool) {
-      let conditions = ['p.approval_status = "APPROVED"', 'p.publication_status = "PUBLISHED"'];
+      let conditions = [
+        'p.approval_status = "APPROVED"',
+        'p.publication_status = "PUBLISHED"',
+        '(c.is_active = 1 OR c.id IS NULL)',
+        '(ap.is_active = 1 OR ap.id IS NULL)',
+        '(pt.status = "APPROVED" OR p.added_by_role = "ADMIN")'
+      ];
       const params: any[] = [];
 
       if (search) {
@@ -140,14 +146,16 @@ export async function getPublicProducts(req: Request, res: Response) {
       if (collection === 'featured') {
         conditions.push('p.is_featured = 1');
       } else if (collection === 'trending') {
-        conditions.push('p.is_trending = 1');
+        conditions.push('(p.is_trending = 1 OR p.clicks_count > 0)');
       }
 
-      let orderBy = 'p.created_at DESC';
-      if (sort === 'price_asc') orderBy = 'p.price ASC';
-      else if (sort === 'price_desc') orderBy = 'p.price DESC';
-      else if (sort === 'rating_desc') orderBy = 'p.rating DESC';
-      else if (sort === 'popular') orderBy = 'p.clicks_count DESC';
+      let orderBy = 'p.display_priority DESC, p.created_at DESC';
+      if (sort === 'price_asc') orderBy = 'p.price ASC, p.display_priority DESC';
+      else if (sort === 'price_desc') orderBy = 'p.price DESC, p.display_priority DESC';
+      else if (sort === 'rating_desc') orderBy = 'p.rating DESC, p.display_priority DESC';
+      else if (sort === 'popular') orderBy = 'p.clicks_count DESC, p.display_priority DESC';
+      else if (collection === 'trending') orderBy = 'p.clicks_count DESC, p.display_priority DESC';
+      else if (collection === 'latest') orderBy = 'COALESCE(p.published_at, p.created_at) DESC, p.display_priority DESC';
 
       const whereClause = conditions.join(' AND ');
 
@@ -156,6 +164,7 @@ export async function getPublicProducts(req: Request, res: Response) {
         FROM products p 
         LEFT JOIN categories c ON p.category_id = c.id 
         LEFT JOIN affiliate_platforms ap ON p.platform_id = ap.id 
+        LEFT JOIN partners pt ON p.partner_id = pt.id
         WHERE ${whereClause}
       `;
       const [countRows]: any = await mysqlPool.execute(countSql, params);
@@ -165,7 +174,8 @@ export async function getPublicProducts(req: Request, res: Response) {
         SELECT 
           p.id, p.product_name, p.slug, p.image_url, p.description, 
           p.price, p.original_mrp, p.currency, p.rating, p.reviews_count, 
-          p.affiliate_url, p.clicks_count, p.created_at,
+          p.affiliate_url, p.clicks_count, p.display_priority, p.is_featured, p.is_trending,
+          p.added_by_role, p.created_at, p.published_at,
           c.id AS category_id, c.name AS category_name,
           ap.id AS platform_id, ap.name AS platform_name, ap.badge_color AS platform_badge_color,
           pt.id AS partner_id, pt.partner_id AS partner_code, pt.full_name AS partner_name
@@ -194,7 +204,18 @@ export async function getPublicProducts(req: Request, res: Response) {
 
     // Local engine query
     let filtered = memoryStore.products.filter(
-      (p) => p.approval_status === 'APPROVED' && p.publication_status === 'PUBLISHED'
+      (p) => {
+        if (p.approval_status !== 'APPROVED' || p.publication_status !== 'PUBLISHED') return false;
+        const cat = memoryStore.categories.find((c) => c.id === p.category_id);
+        if (cat && !cat.is_active) return false;
+        const plat = memoryStore.affiliate_platforms.find((pl) => pl.id === p.platform_id);
+        if (plat && !plat.is_active) return false;
+        if (p.added_by_role === 'PARTNER' && p.partner_id) {
+          const pt = memoryStore.partners.find((partner) => partner.id === p.partner_id);
+          if (pt && pt.status !== 'APPROVED') return false;
+        }
+        return true;
+      }
     );
 
     if (search) {

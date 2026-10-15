@@ -7,6 +7,8 @@ import apiRouter from './server/routes/api.js';
 import { trackAndRedirectClick } from './server/controllers/publicController.js';
 import dotenv from 'dotenv';
 
+import { securityHeaders } from './server/middleware/security.js';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +17,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const isProd = process.env.NODE_ENV === 'production';
+
+// Apply Security HTTP Headers
+app.use(securityHeaders);
 
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
